@@ -22,6 +22,19 @@ class Pacman(Entity):
         self.power_up_timer = 0
 
 class Ghost(Entity):
+
+    '''
+    speed needs to a factor when frightened 
+    decrease it to 1 block every 2 seconds?
+
+    Blinky (Red): Top-right
+
+    Pinky (Pink): Top-left
+
+    Inky (Cyan): Bottom-right
+
+    Clyde (Orange): Bottom-left
+    '''
     def __init__(self, x, y, name, color, scatter_target):
         super().__init__(x, y)
         self.name = name
