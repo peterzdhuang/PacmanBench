@@ -45,7 +45,7 @@ class Ghost(Entity):
 
     def get_target(self, game_state) -> Tuple[int, int]:
         if self.state == GhostState.FRIGHTENED:
-            # Random or specific logic for frightened
+            # Random or specific logic for frightened test 
             return (self.x, self.y) # Placeholder
         if self.state == GhostState.SCATTER:
             return self.scatter_target
