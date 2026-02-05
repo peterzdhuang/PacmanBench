@@ -11,15 +11,15 @@ DEFAULT_MAP = [
     "W.WWWW.WW.WWWWWWWW.WW.WWWW.W",
     "W......WW....WW....WW......W",
     "WWWWWW.WWWWW WW WWWWW.WWWWWW",
-    "     W.WWWWW WW WWWWW.W     ",
-    "     W.WW          WW.W     ",
-    "     W.WW WWW--WWW WW.W     ",
+    "WWWWWW.WWWWW WW WWWWW.WWWWWW",
+    "WWWWWW.WW          WW.WWWWWW",
+    "WWWWWW.WW WWW--WWW WW.WWWWWW",
     "WWWWWW.WW W      W WW.WWWWWW",
     "      .   W      W   .      ",
     "WWWWWW.WW W      W WW.WWWWWW",
-    "     W.WW WWWWWWWW WW.W     ",
-    "     W.WW          WW.W     ",
-    "     W.WW WWWWWWWW WW.W     ",
+    "WWWWWW.WW WWWWWWWW WW.WWWWWW",
+    "WWWWWW.WW          WW.WWWWWW",
+    "WWWWWW.WW WWWWWWWW WW.WWWWWW",
     "WWWWWW.WW WWWWWWWW WW.WWWWWW",
     "W............WW............W",
     "W.WWWW.WWWWW.WW.WWWWW.WWWW.W",
@@ -53,6 +53,8 @@ class Map:
                     grid_row.append(Tile.POWER_PELLET)
                 elif char == ' ':
                     grid_row.append(Tile.EMPTY)
+                elif char == '-':
+                    grid_row.append(Tile.ONE_WAY_WALL)
                 else:
                     grid_row.append(Tile.EMPTY)
             self.grid.append(grid_row)

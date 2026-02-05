@@ -6,6 +6,7 @@ class Tile(Enum):
     PELLET = 2
     POWER_PELLET = 3
     CHERRY = 4
+    ONE_WAY_WALL = 5
 
 class Direction(Enum):
     UP = (0, -1)
