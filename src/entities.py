@@ -51,7 +51,6 @@ class Ghost(Entity):
             return self.scatter_target
         
         return self._get_chase_target(game_state)
-
     def _get_chase_target(self, game_state) -> Tuple[int, int]:
         raise NotImplementedError
 
