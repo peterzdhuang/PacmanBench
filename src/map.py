@@ -68,8 +68,38 @@ class Map:
         if 0 <= x < self.width and 0 <= y < self.height:
             self.grid[y][x] = tile
 
-    def is_wall(self, x, y):
+    def is_wall(self, x, y, entity_type='pacman', moving_direction=None):
+        """Check if a tile is impassable.
+        
+        Args:
+            x, y: Tile coordinates
+            entity_type: 'pacman', 'ghost', or 'eaten_ghost'
+            moving_direction: Direction the entity is moving (used for one-way door)
+        """
         # Handle wrapping for the tunnel
         if y == 14 and (x < 0 or x >= self.width):
             return False
-        return self.get_tile(x, y) == Tile.WALL
+        tile = self.get_tile(x, y)
+        if tile == Tile.WALL:
+            return True
+        if tile == Tile.ONE_WAY_WALL:
+            # One-way door: only ghosts can pass through (exiting upward or eaten returning)
+            if entity_type == 'pacman':
+                return True
+            if entity_type == 'eaten_ghost':
+                return False  # Eaten ghosts can pass through to return to spawn
+            # Normal ghosts can only exit (move up through the door), not re-enter
+            if moving_direction is not None:
+                from src.constants import Direction
+                return moving_direction != Direction.UP
+            return True
+        return False
+
+    def count_pellets(self):
+        """Count remaining pellets and power pellets on the map."""
+        count = 0
+        for row in self.grid:
+            for tile in row:
+                if tile in (Tile.PELLET, Tile.POWER_PELLET):
+                    count += 1
+        return count

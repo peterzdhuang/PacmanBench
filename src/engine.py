@@ -26,6 +26,7 @@ class GameState:
         ]
         self.score = 0
         self.game_over = False
+        self.won = False
         self.ticks = 0
         self.ghost_eat_multiplier = 0
         self.cycle_index = 0
@@ -33,6 +34,8 @@ class GameState:
         self.cherry_timer = 0
         self.cherry_active = False
         self.cherry_pos = (14, 17) # Below ghost house
+        self.total_pellets = self.map.count_pellets()
+        self.pellets_remaining = self.total_pellets
 
 class GameEngine:
     def __init__(self):
@@ -49,6 +52,13 @@ class GameEngine:
         self._move_ghosts()
         self._check_collisions()
         self._handle_cherry()
+        self._check_win()
+
+    def _check_win(self):
+        """Check if all pellets have been consumed."""
+        if self.state.pellets_remaining <= 0:
+            self.state.game_over = True
+            self.state.won = True
 
     def _update_global_timers(self):
         # Handle power up timer
@@ -96,7 +106,7 @@ class GameEngine:
             if next_x < 0: next_x = self.state.map.width - 1
             elif next_x >= self.state.map.width: next_x = 0
 
-        if not self.state.map.is_wall(next_x, next_y):
+        if not self.state.map.is_wall(next_x, next_y, entity_type='pacman'):
             self.state.pacman.x = next_x
             self.state.pacman.y = next_y
             self.state.pacman.direction = direction
@@ -107,9 +117,11 @@ class GameEngine:
         if tile == Tile.PELLET:
             self.state.score += POINTS_PELLET
             self.state.map.set_tile(x, y, Tile.EMPTY)
+            self.state.pellets_remaining -= 1
         elif tile == Tile.POWER_PELLET:
             self.state.score += POINTS_POWER_PELLET
             self.state.map.set_tile(x, y, Tile.EMPTY)
+            self.state.pellets_remaining -= 1
             self._trigger_power_up()
         elif tile == Tile.CHERRY:
             self.state.score += POINTS_CHERRY
@@ -125,7 +137,13 @@ class GameEngine:
                 ghost.state = GhostState.FRIGHTENED
 
     def _move_ghosts(self):
+        # Direction priority for tie-breaking: UP, LEFT, DOWN, RIGHT
+        direction_priority = [Direction.UP, Direction.LEFT, Direction.DOWN, Direction.RIGHT]
+
         for ghost in self.state.ghosts:
+            # Determine entity type for wall checking
+            entity_type = 'eaten_ghost' if ghost.state == GhostState.EATEN else 'ghost'
+
             # Dead ghosts return to spawn
             if ghost.state == GhostState.EATEN:
                 if (ghost.x, ghost.y) == ghost.start_pos:
@@ -136,7 +154,7 @@ class GameEngine:
                 target = ghost.get_target(self.state)
 
             possible_directions = []
-            for d in [Direction.UP, Direction.LEFT, Direction.DOWN, Direction.RIGHT]:
+            for d in direction_priority:
                 if d == ghost.direction.opposite():
                     continue
                 
@@ -147,7 +165,7 @@ class GameEngine:
                     if nx < 0: nx = self.state.map.width - 1
                     elif nx >= self.state.map.width: nx = 0
 
-                if not self.state.map.is_wall(nx, ny):
+                if not self.state.map.is_wall(nx, ny, entity_type=entity_type, moving_direction=d):
                     possible_directions.append(d)
             
             if not possible_directions:
@@ -160,17 +178,21 @@ class GameEngine:
 
             best_dir = possible_directions[0]
             if ghost.state == GhostState.FRIGHTENED:
-                # In frightened mode, ghosts move pseudo-randomly or choose a direction
-                # For this benchmark, let's make them move away from Pacman or just random
                 best_dir = random.choice(possible_directions)
             else:
                 min_dist = float('inf')
                 for d in possible_directions:
                     nx, ny = ghost.x + d.value[0], ghost.y + d.value[1]
+                    # Handle tunnel for distance calculation
+                    if ny == 14:
+                        if nx < 0: nx = self.state.map.width - 1
+                        elif nx >= self.state.map.width: nx = 0
                     dist = (nx - target[0])**2 + (ny - target[1])**2
                     if dist < min_dist:
                         min_dist = dist
                         best_dir = d
+                    # Tie-breaking is handled by iteration order (UP, LEFT, DOWN, RIGHT)
+                    # Since we iterate in priority order and use strict <, first direction wins
             
             ghost.x += best_dir.value[0]
             ghost.y += best_dir.value[1]
