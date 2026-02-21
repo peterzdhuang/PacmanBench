@@ -48,9 +48,28 @@ class GameEngine:
 
         self.state.ticks += 1
         self._update_global_timers()
+
+        # Record ghost positions before move for swap-collision detection
+        ghost_prev = [(g.x, g.y) for g in self.state.ghosts]
+        pac_prev = (self.state.pacman.x, self.state.pacman.y)
+
         self._move_pacman(pacman_direction)
         self._move_ghosts()
         self._check_collisions()
+
+        # Swap-collision: ghost moved to where Pac-Man was AND
+        # Pac-Man moved to where ghost was => they crossed
+        if not self.state.game_over:
+            px, py = self.state.pacman.x, self.state.pacman.y
+            for i, ghost in enumerate(self.state.ghosts):
+                gx_prev, gy_prev = ghost_prev[i]
+                if (ghost.x, ghost.y) == pac_prev and (px, py) == (gx_prev, gy_prev):
+                    if ghost.state == GhostState.FRIGHTENED:
+                        self._eat_ghost(ghost)
+                    elif ghost.state not in (GhostState.EATEN, GhostState.FRIGHTENED):
+                        self.state.game_over = True
+                        break
+
         self._handle_cherry()
         self._check_win()
 
@@ -133,8 +152,7 @@ class GameEngine:
         self.state.pacman.power_up_timer = POWER_PELLET_DURATION
         self.state.ghost_eat_multiplier = 0
         for ghost in self.state.ghosts:
-            if ghost.state != GhostState.EATEN:
-                ghost.state = GhostState.FRIGHTENED
+            ghost.state = GhostState.FRIGHTENED
 
     def _move_ghosts(self):
         # Direction priority for tie-breaking: UP, LEFT, DOWN, RIGHT
@@ -144,12 +162,13 @@ class GameEngine:
             # Determine entity type for wall checking
             entity_type = 'eaten_ghost' if ghost.state == GhostState.EATEN else 'ghost'
 
-            # Dead ghosts return to spawn
+            # Eaten ghosts are immediately respawned (handled in _eat_ghost),
+            # so EATEN state should not persist — but handle defensively.
             if ghost.state == GhostState.EATEN:
-                if (ghost.x, ghost.y) == ghost.start_pos:
-                    ghost.state = GhostState.CHASE # Will be synced next tick
-                    self._sync_ghost_states()
-                target = ghost.start_pos
+                ghost.x, ghost.y = ghost.start_pos
+                ghost.state = GhostState.CHASE
+                self._sync_ghost_states()
+                continue
             else:
                 target = ghost.get_target(self.state)
 
@@ -218,7 +237,11 @@ class GameEngine:
         # 200, 400, 800, 1600
         points = POINTS_GHOST_BASE * (2 ** min(self.state.ghost_eat_multiplier - 1, 3))
         self.state.score += points
-        ghost.state = GhostState.EATEN
+        # Immediately reset ghost to spawn position and restore normal state
+        ghost.x, ghost.y = ghost.start_pos
+        ghost.direction = Direction.NONE
+        ghost.state = GhostState.CHASE
+        self._sync_ghost_states()
 
     def _handle_cherry(self):
         if not self.state.cherry_active:

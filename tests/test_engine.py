@@ -89,7 +89,10 @@ class TestGameOver:
         ghost.y = state.pacman.y
         engine._check_collisions()
         assert state.game_over is False
-        assert ghost.state == GhostState.EATEN
+        # Ghost is immediately respawned to start position in normal state
+        assert ghost.x == ghost.start_pos[0]
+        assert ghost.y == ghost.start_pos[1]
+        assert ghost.state != GhostState.FRIGHTENED
 
 
 class TestScoring:
